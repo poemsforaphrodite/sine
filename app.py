@@ -47,16 +47,9 @@ def plot():
         # Calculate the dates based on the birthdate and periods
         dates = [birthdate + timedelta(days=365.25 * period) for period in periods]
 
-        # Calculate midpoints between consecutive dates
-        mid_dates = [dates[i] + (dates[i+1] - dates[i]) / 2 for i in range(len(dates) - 1)]
-
-        # Include the first and last date for plotting edges
-        all_dates = [dates[0]] + mid_dates + [dates[-1]]
-        all_y_values = [y_values[0]] + y_values.tolist() + [y_values[-1]]
-
         # Filter dates for the specified range
-        filtered_dates = [date for date in all_dates if start_year <= (date.year - birthdate.year) <= end_year]
-        filtered_y_values = [all_y_values[i] for i in range(len(all_dates)) if start_year <= (all_dates[i].year - birthdate.year) <= end_year]
+        filtered_dates = [date for date in dates if start_year <= (date.year - birthdate.year) <= end_year]
+        filtered_y_values = [y_values[i] for i in range(len(dates)) if start_year <= (dates[i].year - birthdate.year) <= end_year]
 
         x_smooth, y_smooth = interpolate_points(filtered_dates, filtered_y_values)
 
