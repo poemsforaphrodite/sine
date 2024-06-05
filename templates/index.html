@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Life Cycle Visualization</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Life Cycle Visualization</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <label for="file">Upload CSV:</label>
+        <input type="file" id="file" name="file" required><br>
+        <label for="birthdate">Birthdate (YYYY-MM-DD):</label>
+        <input type="date" id="birthdate" name="birthdate" required><br>
+        <label for="start_year">Start Year:</label>
+        <input type="number" id="start_year" name="start_year" value="0"><br>
+        <label for="end_year">End Year:</label>
+        <input type="number" id="end_year" name="end_year" value="5"><br>
+        <button type="submit">Submit</button>
+    </form>
+    <div id="graph"></div>
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/plot', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    const graphDiv = document.getElementById('graph');
+                    Plotly.react(graphDiv, JSON.parse(data.graph).data, JSON.parse(data.graph).layout);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
