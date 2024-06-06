@@ -4,12 +4,81 @@
     <meta charset="UTF-8">
     <title>Life Cycle Visualization</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            position: relative;
+            min-height: 100vh;
+            margin: 0;
+            padding-bottom: 50px; /* Footer height */
+            box-sizing: border-box;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            color: #444;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="date"],
+        input[type="number"],
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #graph {
+            width: 80%;
+            margin: 20px 0;
+        }
+        #footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            background: #333;
+            color: white;
+        }
+        #footer a {
+            color: #00d1b2;
+            text-decoration: none;
+        }
+        #footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h1>Life Cycle Visualization</h1>
-    <form id="upload-form" enctype="multipart/form-data">
-        <label for="file">Upload CSV:</label>
-        <input type="file" id="file" name="file" required><br>
+    <h1>FUTUREVIEW TIME MACHINE</h1>
+    <form id="parameters-form">
         <label for="birthdate">Birthdate (YYYY-MM-DD):</label>
         <input type="date" id="birthdate" name="birthdate" required><br>
         <label for="start_year">Start Year:</label>
@@ -19,8 +88,11 @@
         <button type="submit">Submit</button>
     </form>
     <div id="graph"></div>
+    <div id="footer">
+        <a href="https://futureview.app/">powered by Futureview.app</a>
+    </div>
     <script>
-        document.getElementById('upload-form').addEventListener('submit', function (e) {
+        document.getElementById('parameters-form').addEventListener('submit', function (e) {
             e.preventDefault();
             const formData = new FormData(this);
             fetch('/plot', {

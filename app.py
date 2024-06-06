@@ -4,25 +4,36 @@ import numpy as np
 import plotly.graph_objs as go
 import plotly
 import json
-from scipy.interpolate import make_interp_spline
 from datetime import datetime, timedelta
+from scipy.interpolate import CubicSpline
 
 app = Flask(__name__)
 
-def interpolate_points(dates, y_values):
-    # Convert dates to ordinal for interpolation
-    x = np.array([date.toordinal() for date in dates])
-    y = np.array(y_values)
+# Read the CSV data
+dates_df = pd.read_csv('dates.csv')
+periods_df = pd.read_csv('periods.csv')
+
+# Ensure the Date and Average Date columns are in datetime format
+dates_df['Period Beginning Times'] = pd.to_datetime(dates_df['Period Beginning Times'])
+dates_df['Average Date'] = pd.to_datetime(dates_df['Average Date'])
+
+def generate_spline_curve(dates, y_values):
+    # Convert dates to numeric values for fitting
+    dates_numeric = np.array([(date - dates[0]).days for date in dates])
     
-    # Create a smooth line using spline interpolation
-    x_smooth = np.linspace(x.min(), x.max(), 500)
-    spline = make_interp_spline(x, y, k=3)
-    y_smooth = spline(x_smooth)
+    # Create the spline interpolator
+    spline = CubicSpline(dates_numeric, y_values)
     
-    # Convert back to datetime
-    x_smooth_dates = [datetime.fromordinal(int(date)) for date in x_smooth]
+    # Generate a dense range of x values for a smooth curve
+    x_dense = np.linspace(dates_numeric.min(), dates_numeric.max(), 1000)
     
-    return x_smooth_dates, y_smooth
+    # Generate spline values
+    spline_y_values = spline(x_dense)
+    
+    # Convert x_dense back to datetime
+    dates_dense = [dates[0] + timedelta(days=int(x)) for x in x_dense]
+    
+    return dates_dense, spline_y_values
 
 @app.route('/')
 def index():
@@ -30,32 +41,28 @@ def index():
 
 @app.route('/plot', methods=['POST'])
 def plot():
-    file = request.files['file']
     birthdate_str = request.form['birthdate']
     start_year = int(request.form.get('start_year', 0))
     end_year = int(request.form.get('end_year', 5))
 
-    if not file:
-        return jsonify({"error": "No file uploaded"})
-
     try:
         birthdate = datetime.strptime(birthdate_str, '%Y-%m-%d')
-        data = pd.read_csv(file)
-        periods = data['Elapsed Period']
-        y_values = data['Y Value']
 
-        # Calculate the dates based on the birthdate and periods
-        dates = [birthdate + timedelta(days=365.25 * period) for period in periods]
+        # Repeat the periods to match the length of dates_df
+        periods = periods_df['Elapsed Period']
+        y_values = periods_df['Y Value']
+        repeated_y_values = np.tile(y_values, len(dates_df) // len(y_values) + 1)[:len(dates_df)]
 
         # Filter dates for the specified range
-        filtered_dates = [date for date in dates if start_year <= (date.year - birthdate.year) <= end_year]
-        filtered_y_values = [y_values[i] for i in range(len(dates)) if start_year <= (dates[i].year - birthdate.year) <= end_year]
+        avg_dates = dates_df['Average Date']
+        filtered_dates = [date for date in avg_dates if start_year <= (date.year - birthdate.year) <= end_year]
 
-        x_smooth, y_smooth = interpolate_points(filtered_dates, filtered_y_values)
+        # Generate spline curve values for the filtered dates
+        spline_dates, spline_y_values = generate_spline_curve(filtered_dates, repeated_y_values[:len(filtered_dates)])
 
         graph = go.Figure()
-        graph.add_trace(go.Scatter(x=filtered_dates, y=filtered_y_values, mode='markers', name='Points'))
-        graph.add_trace(go.Scatter(x=x_smooth, y=y_smooth, mode='lines', name='Smooth Line'))
+        graph.add_trace(go.Scatter(x=filtered_dates, y=repeated_y_values[:len(filtered_dates)], mode='markers', name='Points'))
+        graph.add_trace(go.Scatter(x=spline_dates, y=spline_y_values, mode='lines', name='Spline Curve'))
 
         graph.update_layout(
             title='Life Cycle Visualization',
@@ -73,7 +80,7 @@ def plot():
                     ])
                 )
             ),
-            yaxis=dict(range=[-120, 120])  # Updated y-axis range
+            yaxis=dict(range=[-120, 120])  # Updated y-axis range for spline curve
         )
 
         graphJSON = json.dumps(graph, cls=plotly.utils.PlotlyJSONEncoder)
